@@ -32,7 +32,7 @@ client = SierraApiClient.new({
 Example GET:
 
 ```ruby
-bib_response = sierra_client.get 'patrons/1234'
+bib_response = sierra_client.get 'bibs/12345678'
 bib = bib_response.body
 ```
 
