@@ -44,6 +44,8 @@ valid = check_login.success?
 invalid = check_login.error?
 ```
 
+Note that only GET and POST are supported at writing.
+
 ### Responses
 
 Because of the variety of HTTP status codes and "Content-Type"s returned by the Sierra REST API, the Sierra API Client makes few assumptions about the response. All calls return a `SierraApiResponse` object with the following methods:
