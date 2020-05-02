@@ -1,0 +1,48 @@
+{
+    "id": 5459252,
+    "updatedDate": "2020-04-21T01:00:49Z",
+    "createdDate": "2020-04-21T01:00:37Z",
+    "deleted": false,
+    "suppressed": false,
+    "names": [
+        "McNameName, Namey"
+    ],
+    "barcodes": [
+        "12345678901234"
+    ],
+    "expirationDate": "2022-04-01",
+    "birthDate": "1896-11-22",
+    "emails": [
+        "example@example.com"
+    ],
+    "patronType": 10,
+    "patronCodes": {
+        "pcode1": "-",
+        "pcode2": "p",
+        "pcode3": 2,
+        "pcode4": 0
+    },
+    "homeLibraryCode": "lb",
+    "message": {
+        "code": "-",
+        "accountMessages": [
+        ]
+    },
+    "blockInfo": {
+        "code": "c"
+    },
+    "addresses": [
+        {
+            "lines": [
+                "476 Fifth Avenue",
+                "NEW YORK, NY 10018"
+            ],
+            "type": "a"
+        }
+    ],
+    "moneyOwed": 10.00,
+    "fixedFields": {
+    },
+    "varFields": [
+    ]
+}

@@ -1,0 +1,4 @@
+# Let's not version our .gem artifacts
+*.gem
+
+.env*
