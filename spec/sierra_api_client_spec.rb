@@ -158,6 +158,27 @@ describe SierraApiClient do
     end
   end
 
+  describe :do_request do
+    it "should throw if invalid method" do
+      expect { SierraApiClient.new.send :do_request, 'patch', 'some-path' }.to raise_error(SierraApiClientError)
+    end
+
+    it "should perform get" do
+      stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path")
+        .to_return({
+          status: 200,
+          body: '{ "foo": "bar" }',
+          headers: { 'Content-Type' => 'application/json;charset=UTF-8' }
+        })
+
+      resp = SierraApiClient.new.send :do_request, 'get', 'some-path'
+      expect(resp).to be_a(SierraApiResponse)
+      expect(resp.body).to be_a(Hash)
+      expect(resp.body['foo']).to eq('bar')
+    end
+
+  end
+
   describe :responses do
     it "should auto parse JSON if Content-Type is json and 200 response" do
       stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path")

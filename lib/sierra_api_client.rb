@@ -32,37 +32,26 @@ class SierraApiClient
   def get (path, options = {})
     options = parse_http_options options
 
-    authenticate! if options[:authenticated]
-
-    uri = URI.parse("#{@config[:base_url]}#{path}")
-
-    logger.debug "SierraApiClient: Getting from Sierra api", { uri: uri }
-
-    begin
-      request = Net::HTTP::Get.new(uri)
-
-      # Add bearer token header
-      request["Authorization"] = "Bearer #{@access_token}" if options[:authenticated]
-
-      # Execute request:
-      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme === 'https') do |http|
-        http.request(request)
-      end
-    rescue => e
-      raise SierraApiClientError.new(e), "Failed to GET #{path}: #{e.message}"
-    end
-
-    logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
-
-    parse_response response
+    do_request 'get', path, options
   end
-
 
   def post (path, body, options = {})
     options = parse_http_options options
 
     # Default to POSTing JSON unless explicitly stated otherwise
     options[:headers]['Content-Type'] = 'application/json' unless options[:headers]['Content-Type']
+
+    do_request 'post', path, options do |request|
+      request.body = body
+      request.body = request.body.to_json unless options[:headers]['Content-Type'] != 'application/json'
+    end
+  end
+
+  private
+
+  def do_request (method, path, options = {})
+    # For now, these are the methods we support:
+    raise SierraApiClientError, "Unsupported method: #{method}" unless ['get', 'post'].include? method.downcase
 
     authenticate! if options[:authenticated]
 
@@ -71,28 +60,32 @@ class SierraApiClient
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme === 'https'
 
+    # Build request headers:
+    request_headers = {}
+    request_headers['Content-Type'] = options[:headers]['Content-Type'] unless options.dig(:headers, 'Content-Type').nil?
+
+    # Create HTTP::Get or HTTP::Post
+    request =  Net::HTTP.const_get(method.capitalize).new(uri.path, request_headers)
+
+    # Add bearer token header
+    request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
+
+    # Allow caller to modify the request before we send it off:
+    yield request if block_given?
+
+    logger.debug "SierraApiClient: #{method} to Sierra api", { uri: uri, body: request.body }
+
     begin
-      request = Net::HTTP::Post.new(uri.path, 'Content-Type' => options[:headers]['Content-Type'])
-      request.body = body
-      request.body = request.body.to_json unless options[:headers]['Content-Type'] != 'application/json'
-
-      logger.debug "SierraApiClient: Posting to Sierra api", { uri: uri, body: body }
-
-      # Add bearer token header
-      request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
-
       # Execute request:
       response = http.request(request)
     rescue => e
-      raise SierraApiClientError.new(e), "Failed to POST to #{path}: #{e.message}"
+      raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
     end
 
     logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
 
     parse_response response
   end
-
-  private
 
   def parse_response (response)
     if response.code == "401"

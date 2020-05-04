@@ -32,7 +32,7 @@ client = SierraApiClient.new({
 Example GET:
 
 ```ruby
-bib_response = sierra_client.get 'patrons/1234'
+bib_response = sierra_client.get 'bibs/12345678'
 bib = bib_response.body
 ```
 
@@ -43,6 +43,8 @@ check_login = sierra_client.post 'patrons/validate', { "barcode": "1234", "pin":
 valid = check_login.success?
 invalid = check_login.error?
 ```
+
+Note that only GET and POST are supported at writing.
 
 ### Responses
 
