@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "Client for querying Sierra API"
   s.authors     = ["nonword"]
   s.email       = 'paulbeaudoin@nypl.org'
-  s.files       = ["lib/sierra_api_client.rb", "lib/sierra_api_response.rb", "lib/errors.rb"]
+  s.files       = ["lib/nypl_sierra_api_client.rb", "lib/sierra_api_response.rb", "lib/errors.rb"]
   s.homepage    = 'https://github.com/NYPL/ruby-sierra-api-client'
   s.license     = 'MIT'
 end
