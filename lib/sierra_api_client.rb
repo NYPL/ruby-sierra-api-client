@@ -8,18 +8,25 @@ require_relative 'sierra_api_response'
 
 class SierraApiClient
   def initialize(config = {})
-    @config = {
-      base_url: ENV['SIERRA_API_BASE_URL'],
-      client_id: ENV['SIERRA_OAUTH_ID'],
-      client_secret: ENV['SIERRA_OAUTH_SECRET'],
-      oauth_url: ENV['SIERRA_OAUTH_URL'],
-      log_level: 'info'
-    }.merge config
+    config_defaults = {
+      env: {
+        base_url: 'SIERRA_API_BASE_URL',
+        client_id: 'SIERRA_OAUTH_ID',
+        client_secret: 'SIERRA_OAUTH_SECRET',
+        oauth_url: 'SIERRA_OAUTH_URL'
+      },
+      static: {
+        log_level: 'info'
+      }
+    }
 
-    raise SierraApiClientError.new 'Missing config: neither config.base_url nor ENV.SIERRA_API_BASE_URL are set' unless @config[:base_url]
-    raise SierraApiClientError.new 'Missing config: neither config.client_id nor ENV.SIERRA_OAUTH_ID are set' unless @config[:client_id]
-    raise SierraApiClientError.new 'Missing config: neither config.client_secret nor ENV.SIERRA_OAUTH_SECRET are set ' unless @config[:client_secret]
-    raise SierraApiClientError.new 'Missing config: neither config.oauth_url nor ENV.SIERRA_OAUTH_URL are set ' unless @config[:oauth_url]
+    @config = config_defaults[:env].map {|k,v| [k, ENV[k]]}.to_h
+      .merge config_defaults[:static]
+      .merge config
+
+    config_defaults[:env].each do |key, value|
+      raise SierraApiClient.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
+    end
   end
 
   def get (path, options = {})
@@ -87,7 +94,7 @@ class SierraApiClient
       @access_token = nil
       raise SierraApiClientTokenError.new("Got a 401: #{response.body}")
     end
-    
+
     SierraApiResponse.new(response)
   end
 
