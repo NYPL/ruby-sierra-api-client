@@ -65,7 +65,7 @@ class SierraApiClient
     request_headers['Content-Type'] = options[:headers]['Content-Type'] unless options.dig(:headers, 'Content-Type').nil?
 
     # Create HTTP::Get or HTTP::Post
-    request =  Net::HTTP.const_get(method.capitalize).new(uri.path, request_headers)
+    request =  Net::HTTP.const_get(method.capitalize).new(uri, request_headers)
 
     # Add bearer token header
     request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
