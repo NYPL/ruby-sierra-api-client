@@ -4,7 +4,7 @@ Simple client for querying the Sierra API
 
 ## Version
 
-> 1.0.1
+> 1.0.2
 
 ## Using
 
