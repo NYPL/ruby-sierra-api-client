@@ -20,12 +20,12 @@ class SierraApiClient
       }
     }
 
-    @config = config_defaults[:env].map {|k,v| [k, ENV[k]]}.to_h
+    @config = config_defaults[:env].map {|k,v| [k, ENV[v]]}.to_h
       .merge config_defaults[:static]
       .merge config
 
     config_defaults[:env].each do |key, value|
-      raise SierraApiClient.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
+      raise SierraApiClientError.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
     end
   end
 
