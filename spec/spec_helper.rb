@@ -1,7 +1,7 @@
 require 'json'
 require 'nypl_log_formatter'
 
-require_relative '../lib/sierra_api_client'
+require_relative '../lib/nypl_sierra_api_client'
 
 ENV['LOG_LEVEL'] ||= 'error'
 ENV['APP_ENV'] = 'test'

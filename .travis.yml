@@ -1,0 +1,12 @@
+language: ruby
+rvm:
+  2.5.0
+  2.7.1
+before_install:
+ - gem install bundler
+cache: bundler
+script:
+- bundle exec rspec -fd
+notifications:
+  email:
+    on_failure: always

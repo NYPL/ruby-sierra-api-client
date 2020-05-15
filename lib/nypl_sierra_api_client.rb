@@ -20,12 +20,12 @@ class SierraApiClient
       }
     }
 
-    @config = config_defaults[:env].map {|k,v| [k, ENV[k]]}.to_h
+    @config = config_defaults[:env].map {|k,v| [k, ENV[v]]}.to_h
       .merge config_defaults[:static]
       .merge config
 
     config_defaults[:env].each do |key, value|
-      raise SierraApiClient.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
+      raise SierraApiClientError.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
     end
   end
 
@@ -65,7 +65,7 @@ class SierraApiClient
     request_headers['Content-Type'] = options[:headers]['Content-Type'] unless options.dig(:headers, 'Content-Type').nil?
 
     # Create HTTP::Get or HTTP::Post
-    request =  Net::HTTP.const_get(method.capitalize).new(uri.path, request_headers)
+    request =  Net::HTTP.const_get(method.capitalize).new(uri, request_headers)
 
     # Add bearer token header
     request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
