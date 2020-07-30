@@ -27,6 +27,8 @@ class SierraApiClient
     config_defaults[:env].each do |key, value|
       raise SierraApiClientError.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
     end
+
+    @retries = 0
   end
 
   def get (path, options = {})
@@ -84,12 +86,11 @@ class SierraApiClient
       # Likely an expired access-token; Wipe it for next run
       # TODO: Implement token refresh
       @access_token = nil
-      logger.debug "SierraApiClient: Refereshing oauth token for 401", { code: 401, body: response.body }
-
+      logger.debug "SierraApiClient: Unathorized", { code: 401, body: response.body }
       reattempt request
     end
 
-    @retries = 0
+    reset_retries if @retries > 0
     SierraApiResponse.new(response)
   end
 
@@ -105,14 +106,18 @@ class SierraApiClient
   end
 
   def reattempt request
-    raise SierraApiClientError.new("Maximum retries exceeded") if @retries >= 3
+    raise SierraApiClientTokenError.new("Maximum retries exceeded") if @retries >= 3
+
+    @retries += 1
+    logger.debug "SierraApiClient: Refereshing oauth token for 401", { retry: @retries }
 
     authenticate!
     # Reset bearer token header
     request['Authorization'] = "Bearer #{@access_token}"
-    @retries += 1
 
-    execute request
+    response = execute request
+
+    handle_response response, request
   end
 
   def parse_http_options (_options)
@@ -159,5 +164,9 @@ class SierraApiClient
 
   def logger
     @logger ||= NyplLogFormatter.new(STDOUT, level: @config[:log_level])
+  end
+
+  def reset_retries
+    @retries = 0
   end
 end

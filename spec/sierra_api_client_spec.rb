@@ -211,11 +211,6 @@ describe SierraApiClient do
       expect(JSON.parse(resp.body)['foo']).to eq('bar')
     end
 
-    it "should refresh oauth token for 401" do
-      stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path").to_return(status: 401, body: '{ "foo": "bar" }' )
-      expect { SierraApiClient.new.get('some-path') }.not_to raise_error(SierraApiClientTokenError)
-    end
-
     it "should throw SierraApiClientError if response is not valid json" do
       stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path")
         .to_return({
@@ -234,6 +229,40 @@ describe SierraApiClient do
       resp = SierraApiClient.new.get('some-path')
       expect(resp).to be_a(SierraApiResponse)
       expect(resp.code).to eq(500)
+    end
+  end
+
+  describe :refresh_oauth do
+    before do
+      stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}one-reattempt").to_return(
+        { status: 401, body: '{ "foo": "bar1" }' },
+        { status: 200, body: '{ "foo": "bar1" }' },
+      )
+
+      stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}maximum-attempts-path").to_return(status: 401, body: '{ "foo": "bar1" }')
+
+      stub_request(:post, "#{ENV['SIERRA_OAUTH_URL']}")
+        .to_return(
+          { status: 200, body: '{ "access_token": "fake-access-token" }' },
+          { status: 200, body: '{ "access_token": "second-fake-access-token" }' },
+        )
+    end
+
+    it "should refresh oauth token for 401" do
+      client = SierraApiClient.new
+      first_token = client.instance_variable_get(:@access_token)
+
+      client.get('one-reattempt')
+      second_token = client.instance_variable_get(:@access_token)
+
+      expect(first_token).not_to eq(second_token)
+      expect(client.instance_variable_get(:@retries)).to eq(0)
+    end
+
+    it "should throw error once maximum retries attempted" do
+      client = SierraApiClient.new
+      expect { client.get('maximum-attempts-path') }.to raise_error(SierraApiClientTokenError)
+      expect(client.instance_variable_get(:@retries)).to eq(3)
     end
   end
 end
