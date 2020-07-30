@@ -58,7 +58,7 @@ Because of the variety of HTTP status codes and "Content-Type"s returned by the 
 
 In the spirit of agnostism, the client will not intentionally raise an error when it encounters an error HTTP status code. Client will only raise an error when the request could not be carried out as specified and should be retried, that is:
  - Network failure
- - Invalid token error (401)
+ - Invalid token error (401) once maximum retry attempts met
 
 ## Contributing
 

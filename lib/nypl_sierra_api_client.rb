@@ -55,17 +55,14 @@ class SierraApiClient
 
     authenticate! if options[:authenticated]
 
-    uri = URI.parse("#{@config[:base_url]}#{path}")
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme === 'https'
+    @uri = URI.parse("#{@config[:base_url]}#{path}")
 
     # Build request headers:
     request_headers = {}
     request_headers['Content-Type'] = options[:headers]['Content-Type'] unless options.dig(:headers, 'Content-Type').nil?
 
     # Create HTTP::Get or HTTP::Post
-    request =  Net::HTTP.const_get(method.capitalize).new(uri, request_headers)
+    request =  Net::HTTP.const_get(method.capitalize).new(@uri, request_headers)
 
     # Add bearer token header
     request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
@@ -73,29 +70,46 @@ class SierraApiClient
     # Allow caller to modify the request before we send it off:
     yield request if block_given?
 
-    logger.debug "SierraApiClient: #{method} to Sierra api", { uri: uri, body: request.body }
+    logger.debug "SierraApiClient: #{method} to Sierra api", { uri: @uri, body: request.body }
 
-    begin
-      # Execute request:
-      response = http.request(request)
-    rescue => e
-      raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
-    end
+    response = execute request
 
     logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
 
-    parse_response response
+    handle_response response, request
   end
 
-  def parse_response (response)
+  def handle_response (response, request)
     if response.code == "401"
       # Likely an expired access-token; Wipe it for next run
       # TODO: Implement token refresh
       @access_token = nil
-      raise SierraApiClientTokenError.new("Got a 401: #{response.body}")
+      logger.debug "SierraApiClient: Refereshing oauth token for 401", { code: 401, body: response.body }
+      reattempt request
     end
 
+    @retries = 0
     SierraApiResponse.new(response)
+  end
+
+  def execute (request)
+    http = Net::HTTP.new(@uri.host, @uri.port)
+    http.use_ssl = @uri.scheme === 'https'
+
+    begin
+      response = http.request(request)
+      return response
+    rescue => e
+      raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
+    end
+  end
+
+  def reattempt request
+    raise SierraApiClientError.new("Maximum retries exceeded") if @retries >= 3
+
+    authenticate!
+    @retries += 1
+    execute request
   end
 
   def parse_http_options (_options)

@@ -113,7 +113,7 @@ describe SierraApiClient do
       expect(options[:headers]['X-My-Header']).to eq('header value')
     end
   end
-  
+
   describe :authentication do
 
     it "should authenticate by default" do
@@ -211,9 +211,9 @@ describe SierraApiClient do
       expect(JSON.parse(resp.body)['foo']).to eq('bar')
     end
 
-    it "should consider 401 as error" do
+    it "should refresh oauth token for 401" do
       stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path").to_return(status: 401, body: '{ "foo": "bar" }' )
-      expect { SierraApiClient.new.get('some-path') }.to raise_error(SierraApiClientTokenError)
+      expect { SierraApiClient.new.get('some-path') }.not_to raise_error(SierraApiClientTokenError)
     end
 
     it "should throw SierraApiClientError if response is not valid json" do
