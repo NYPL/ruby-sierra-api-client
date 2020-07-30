@@ -74,24 +74,7 @@ class SierraApiClient
 
     logger.debug "SierraApiClient: #{method} to Sierra api", { uri: @uri, body: request.body }
 
-    response = execute request
-
-    logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
-
-    handle_response response, request
-  end
-
-  def handle_response (response, request)
-    if response.code == "401"
-      # Likely an expired access-token; Wipe it for next run
-      # TODO: Implement token refresh
-      @access_token = nil
-      logger.debug "SierraApiClient: Unathorized", { code: 401, body: response.body }
-      reattempt request
-    end
-
-    reset_retries if @retries > 0
-    SierraApiResponse.new(response)
+    execute request
   end
 
   def execute (request)
@@ -99,10 +82,26 @@ class SierraApiClient
     http.use_ssl = @uri.scheme === 'https'
 
     begin
-      return http.request(request)
+      response = http.request(request)
+      logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
     rescue => e
-      raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
+      raise SierraApiClientError.new "Failed to #{request.method} to #{request.path}: #{e.message}"
     end
+
+    handle_response response, request
+  end
+
+  def handle_response (response, request)
+    if response.code == "401"
+      # Likely an expired access-token; Wipe it for next run
+
+      @access_token = nil
+      logger.debug "SierraApiClient: Unathorized", { code: 401, body: response.body }
+      reattempt request
+    end
+
+    reset_retries if @retries > 0
+    SierraApiResponse.new(response)
   end
 
   def reattempt request
@@ -115,9 +114,7 @@ class SierraApiClient
     # Reset bearer token header
     request['Authorization'] = "Bearer #{@access_token}"
 
-    response = execute request
-
-    handle_response response, request
+    execute request
   end
 
   def parse_http_options (_options)
