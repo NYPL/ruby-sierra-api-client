@@ -85,6 +85,7 @@ class SierraApiClient
       # TODO: Implement token refresh
       @access_token = nil
       logger.debug "SierraApiClient: Refereshing oauth token for 401", { code: 401, body: response.body }
+
       reattempt request
     end
 
@@ -97,8 +98,7 @@ class SierraApiClient
     http.use_ssl = @uri.scheme === 'https'
 
     begin
-      response = http.request(request)
-      return response
+      return http.request(request)
     rescue => e
       raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
     end
@@ -108,7 +108,10 @@ class SierraApiClient
     raise SierraApiClientError.new("Maximum retries exceeded") if @retries >= 3
 
     authenticate!
+    # Reset bearer token header
+    request['Authorization'] = "Bearer #{@access_token}"
     @retries += 1
+
     execute request
   end
 
