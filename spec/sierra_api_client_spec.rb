@@ -252,11 +252,12 @@ describe SierraApiClient do
       client = SierraApiClient.new
       first_token = client.instance_variable_get(:@access_token)
 
-      client.get('one-reattempt')
+      resp = client.get('one-reattempt')
       second_token = client.instance_variable_get(:@access_token)
 
       expect(first_token).not_to eq(second_token)
       expect(client.instance_variable_get(:@retries)).to eq(0)
+      expect(resp).to be_a(SierraApiResponse)
     end
 
     it "should throw error once maximum retries attempted" do
