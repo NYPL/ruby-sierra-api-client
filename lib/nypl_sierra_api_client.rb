@@ -99,7 +99,7 @@ class SierraApiClient
         if options[:authenticated]
           logger.debug "SierraApiClient: Refreshing oauth token for 401", { code: 401, body: response.body, retry: @retries }
 
-          return reauthorize_and_reattempt request, options
+          return reauthenticate_and_reattempt request, options
         end
       else
         retries_exceeded = true
@@ -114,7 +114,7 @@ class SierraApiClient
     SierraApiResponse.new(response)
   end
 
-  def reauthorize_and_reattempt request, options
+  def reauthenticate_and_reattempt request, options
     @retries += 1
     authenticate!
     # Reset bearer token header
