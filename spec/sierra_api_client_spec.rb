@@ -258,12 +258,29 @@ describe SierraApiClient do
       expect(first_token).not_to eq(second_token)
       expect(client.instance_variable_get(:@retries)).to eq(0)
       expect(resp).to be_a(SierraApiResponse)
+      expect(resp.code).to eq(200)
     end
 
     it "should throw error once maximum retries attempted" do
       client = SierraApiClient.new
       expect { client.get('maximum-attempts-path') }.to raise_error(SierraApiClientTokenError)
-      expect(client.instance_variable_get(:@retries)).to eq(3)
+      assert_requested(
+        :get,
+        "#{ENV['SIERRA_API_BASE_URL']}maximum-attempts-path",
+        times: 4
+      )
+      expect(client.instance_variable_get(:@retries)).to eq(0)
+    end
+
+    it "should throw error once maximum retries attempted" do
+      client = SierraApiClient.new
+      expect { client.get('maximum-attempts-path', { authenticated: false }) }.to raise_error(SierraApiClientTokenError)
+      assert_requested(
+        :get,
+        "#{ENV['SIERRA_API_BASE_URL']}maximum-attempts-path",
+        times: 1
+      )
+      expect(client.instance_variable_get(:@retries)).to eq(0)
     end
   end
 end

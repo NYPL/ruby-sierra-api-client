@@ -74,10 +74,10 @@ class SierraApiClient
 
     logger.debug "SierraApiClient: #{method} to Sierra api", { uri: @uri, body: request.body }
 
-    execute request
+    execute request, options
   end
 
-  def execute (request)
+  def execute (request, options)
     http = Net::HTTP.new(@uri.host, @uri.port)
     http.use_ssl = @uri.scheme === 'https'
 
@@ -88,33 +88,39 @@ class SierraApiClient
       raise SierraApiClientError.new "Failed to #{request.method} to #{request.path}: #{e.message}"
     end
 
-    handle_response response, request
+    handle_response response, request, options
   end
 
-  def handle_response (response, request)
+  def handle_response (response, request, options)
     if response.code == "401"
       # Likely an expired access-token; Wipe it for next run
-
       @access_token = nil
-      logger.debug "SierraApiClient: Unathorized", { code: 401, body: response.body }
-      reattempt request
+      if @retries < 3
+        if options[:authenticated]
+          logger.debug "SierraApiClient: Refreshing oauth token for 401", { code: 401, body: response.body, retry: @retries }
+
+          return reauthorize_and_reattempt request, options
+        end
+      else
+        retries_exceeded = true
+      end
+
+      reset_retries
+      message = "Got a 401: #{retries_exceeded ? "Maximum retries exceeded, " : ''}#{response.body}"
+      raise SierraApiClientTokenError.new(message)
     end
 
     reset_retries if @retries > 0
     SierraApiResponse.new(response)
   end
 
-  def reattempt request
-    raise SierraApiClientTokenError.new("Maximum retries exceeded") if @retries >= 3
-
+  def reauthorize_and_reattempt request, options
     @retries += 1
-    logger.debug "SierraApiClient: Refereshing oauth token for 401", { retry: @retries }
-
     authenticate!
     # Reset bearer token header
     request['Authorization'] = "Bearer #{@access_token}"
 
-    execute request
+    execute request, options
   end
 
   def parse_http_options (_options)
