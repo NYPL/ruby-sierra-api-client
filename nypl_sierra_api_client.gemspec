@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'nypl_sierra_api_client'
-  s.version     = '1.0.3'
+  s.version     = '1.1.0'
   s.date        = '2020-04-21'
   s.summary     = "NYPL Sierra API client"
   s.description = "Client for querying Sierra API"

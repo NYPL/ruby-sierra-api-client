@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.0
+
+Add in OAuth re-authentication, up to three successive attempts, for 401 response from Sierra API for an authenticated request.
+
 ## v1.0.3
 
 Fix: Critical bugs in initializer
@@ -16,4 +20,3 @@ Fix: Rename core library to match gem name for consistent `require`
 
 Initial push with support for:
  - Arbitrary GET and POST requests
-
