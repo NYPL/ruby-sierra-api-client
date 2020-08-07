@@ -27,6 +27,8 @@ class SierraApiClient
     config_defaults[:env].each do |key, value|
       raise SierraApiClientError.new "Missing config: neither config.#{key} nor ENV.#{value} are set" unless @config[key]
     end
+
+    @retries = 0
   end
 
   def get (path, options = {})
@@ -55,17 +57,14 @@ class SierraApiClient
 
     authenticate! if options[:authenticated]
 
-    uri = URI.parse("#{@config[:base_url]}#{path}")
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme === 'https'
+    @uri = URI.parse("#{@config[:base_url]}#{path}")
 
     # Build request headers:
     request_headers = {}
     request_headers['Content-Type'] = options[:headers]['Content-Type'] unless options.dig(:headers, 'Content-Type').nil?
 
     # Create HTTP::Get or HTTP::Post
-    request =  Net::HTTP.const_get(method.capitalize).new(uri, request_headers)
+    request =  Net::HTTP.const_get(method.capitalize).new(@uri, request_headers)
 
     # Add bearer token header
     request['Authorization'] = "Bearer #{@access_token}" if options[:authenticated]
@@ -73,29 +72,55 @@ class SierraApiClient
     # Allow caller to modify the request before we send it off:
     yield request if block_given?
 
-    logger.debug "SierraApiClient: #{method} to Sierra api", { uri: uri, body: request.body }
+    logger.debug "SierraApiClient: #{method} to Sierra api", { uri: @uri, body: request.body }
 
-    begin
-      # Execute request:
-      response = http.request(request)
-    rescue => e
-      raise SierraApiClientError.new(e), "Failed to #{method} to #{path}: #{e.message}"
-    end
-
-    logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
-
-    parse_response response
+    execute request, options
   end
 
-  def parse_response (response)
-    if response.code == "401"
-      # Likely an expired access-token; Wipe it for next run
-      # TODO: Implement token refresh
-      @access_token = nil
-      raise SierraApiClientTokenError.new("Got a 401: #{response.body}")
+  def execute (request, options)
+    http = Net::HTTP.new(@uri.host, @uri.port)
+    http.use_ssl = @uri.scheme === 'https'
+
+    begin
+      response = http.request(request)
+      logger.debug "SierraApiClient: Got Sierra api response", { code: response.code, body: response.body }
+    rescue => e
+      raise SierraApiClientError.new "Failed to #{request.method} to #{request.path}: #{e.message}"
     end
 
+    handle_response response, request, options
+  end
+
+  def handle_response (response, request, options)
+    if response.code == "401"
+      # Likely an expired access-token; Wipe it for next run
+      @access_token = nil
+      if @retries < 3
+        if options[:authenticated]
+          logger.debug "SierraApiClient: Refreshing oauth token for 401", { code: 401, body: response.body, retry: @retries }
+
+          return reauthenticate_and_reattempt request, options
+        end
+      else
+        retries_exceeded = true
+      end
+
+      reset_retries
+      message = "Got a 401: #{retries_exceeded ? "Maximum retries exceeded, " : ''}#{response.body}"
+      raise SierraApiClientTokenError.new(message)
+    end
+
+    reset_retries if @retries > 0
     SierraApiResponse.new(response)
+  end
+
+  def reauthenticate_and_reattempt request, options
+    @retries += 1
+    authenticate!
+    # Reset bearer token header
+    request['Authorization'] = "Bearer #{@access_token}"
+
+    execute request, options
   end
 
   def parse_http_options (_options)
@@ -142,5 +167,9 @@ class SierraApiClient
 
   def logger
     @logger ||= NyplLogFormatter.new(STDOUT, level: @config[:log_level])
+  end
+
+  def reset_retries
+    @retries = 0
   end
 end
