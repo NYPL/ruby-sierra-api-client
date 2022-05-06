@@ -70,6 +70,8 @@ class SierraApiClient
 
   def do_request (method, path, options = {})
 
+  raise SierraApiClientError, "Unsupported method: #{method}" unless ['get', 'post', 'put', 'delete'].include? method.downcase
+
     authenticate! if options[:authenticated]
 
     @uri = URI.parse("#{@config[:base_url]}#{path}")
