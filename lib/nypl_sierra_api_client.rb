@@ -42,6 +42,12 @@ class SierraApiClient
     end
   end
 
+  def delete (path, options = {})
+  options = parse_http_options options
+
+  do_request 'delete', path, options
+  end
+
   def get (path, options = {})
     options = parse_http_options options
 
