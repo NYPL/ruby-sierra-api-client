@@ -2,3 +2,5 @@
 *.gem
 
 .env*
+
+test.rb

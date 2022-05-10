@@ -31,6 +31,23 @@ class SierraApiClient
     @retries = 0
   end
 
+  def put (path, body, options = {})
+  options = parse_http_options options
+    # Default to POSTing JSON unless explicitly stated otherwise
+    options[:headers]['Content-Type'] = 'application/json' unless options[:headers]['Content-Type']
+
+    do_request 'put', path, options do |request|
+      request.body = body
+      request.body = request.body.to_json unless options[:headers]['Content-Type'] != 'application/json'
+    end
+  end
+
+  def delete (path, options = {})
+  options = parse_http_options options
+
+  do_request 'delete', path, options
+  end
+
   def get (path, options = {})
     options = parse_http_options options
 
@@ -52,8 +69,8 @@ class SierraApiClient
   private
 
   def do_request (method, path, options = {})
-    # For now, these are the methods we support:
-    raise SierraApiClientError, "Unsupported method: #{method}" unless ['get', 'post'].include? method.downcase
+
+  raise SierraApiClientError, "Unsupported method: #{method}" unless ['get', 'post', 'put', 'delete'].include? method.downcase
 
     authenticate! if options[:authenticated]
 
