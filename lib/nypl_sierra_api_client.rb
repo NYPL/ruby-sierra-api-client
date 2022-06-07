@@ -131,8 +131,11 @@ class SierraApiClient
     SierraApiResponse.new(response)
   end
 
+
+
   def reauthenticate_and_reattempt request, options
     @retries += 1
+    sleep 2 ** (retries - 1)
     authenticate!
     # Reset bearer token header
     request['Authorization'] = "Bearer #{@access_token}"
