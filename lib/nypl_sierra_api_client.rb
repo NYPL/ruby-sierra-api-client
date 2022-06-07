@@ -127,10 +127,24 @@ class SierraApiClient
       raise SierraApiClientTokenError.new(message)
     end
 
+    if response.body == '' && response.code < 300 && response.code >= 200
+        reattempt_request request, options
+      end
+    end
+
     reset_retries if @retries > 0
     SierraApiResponse.new(response)
   end
 
+  def reattempt_request request, options 
+    if @retries < 3
+      logger.warning "request retry ##{@retries} due to empty response from Sierra API"
+      sleep 2 ** (retries - 1)
+      @retries++
+      execute request, options
+    else 
+      raise SierraApiClientError.new "Sierra API Client: Request failed after 3 empty responses received from Sierra API"
+  end
 
 
   def reauthenticate_and_reattempt request, options
