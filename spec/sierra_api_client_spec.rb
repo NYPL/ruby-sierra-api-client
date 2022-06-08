@@ -13,6 +13,7 @@ describe SierraApiClient do
     stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}patrons/12345")
       .to_return({
         status: 200,
+        body: '{ "id": "12345" }',
         headers: { 'Content-Type' => 'application/json;charset=UTF-8' }
       })
   end
@@ -230,6 +231,24 @@ describe SierraApiClient do
       expect(resp).to be_a(SierraApiResponse)
       expect(resp.code).to eq(500)
     end
+
+    it "should retry requests up to three times when given an empty response object" do 
+      stub_request(:get, "#{ENV['SIERRA_API_BASE_URL']}some-path")
+        .to_return({
+          status: 200,
+          body: '',
+          headers: { 'Content-Type' => 'application/json;charset=UTF-8' }
+        })
+
+        client = SierraApiClient.new
+        expect { client.get('some-path') }.to raise_error(SierraApiResponseError)
+        assert_requested(
+          :get,
+          "#{ENV['SIERRA_API_BASE_URL']}some-path",
+          times: 4
+        )
+        expect(client.instance_variable_get(:@retries)).to eq(0)
+    end 
   end
 
   describe :refresh_oauth do
