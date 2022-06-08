@@ -1,6 +1,11 @@
 # Changelog
 
-## v1.1.0
+## v1.3.0
+
+Add reattempted requests with exponential backoff, logging, and erroring for empty responses from Sierra
+Add exponential backoff for authentication reattempts
+
+## v1.2.0
 
 Add PUT and DELETE functionality 
 
