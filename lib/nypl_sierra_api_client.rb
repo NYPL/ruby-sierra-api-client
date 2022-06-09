@@ -138,7 +138,7 @@ class SierraApiClient
 
   def reattempt_request request, options 
     if @retries < 3
-      logger.warn "request retry ##{@retries} due to empty response from Sierra API"
+      logger.warn "#{request.method} request retry ##{@retries} due to empty response from Sierra API"
       sleep 2 ** (@retries - 1)
       @retries += 1
       execute request, options
